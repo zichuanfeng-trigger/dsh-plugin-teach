@@ -1,0 +1,7 @@
+# 实验四之一：插入一行，名为 layer-experiment
+- insert:
+    - id: layer-experiment
+      name: 'layer-experiment-not-a-real-module'
+      config:
+        who: first-layer
+        color: blue

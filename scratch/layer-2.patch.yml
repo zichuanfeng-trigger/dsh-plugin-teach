@@ -1,0 +1,6 @@
+# 实验四之二：在更后的一层里，用同一个 id 覆盖上一层插入的那一行。
+# 这里只给 who，故意不给 color —— 用来观察 color 是被保留还是消失。
+- id: layer-experiment
+  name: 'layer-experiment-not-a-real-module'
+  config:
+    who: second-layer

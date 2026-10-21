@@ -1,0 +1,7 @@
+# 第一课用的一次性实验层：只插入一行，证明「层」会出现在 dump-config 里。
+# 这一行指向一个不存在的模块也没关系 —— dump-config 只算配置，不加载代码。
+- insert:
+    - id: teach-probe
+      name: 'teach-probe-not-a-real-module'
+      config:
+        greeting: hello-from-teach

@@ -1,0 +1,7 @@
+# 实验三：覆盖一个「本来有三个键」的行，只给其中一个键。
+# session-title 原本有 fallbackMaxWords / fallbackMaxBytes / maxTitleBytes 三个。
+# 结果若只剩 maxTitleBytes，说明是按整体替换（覆盖）而非逐键合并。
+# 注意：这一条故意不写 name，用来同时验证「覆盖时 name 能否省略」。
+- id: session-title
+  config:
+    maxTitleBytes: 999

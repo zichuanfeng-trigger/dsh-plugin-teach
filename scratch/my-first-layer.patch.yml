@@ -1,0 +1,3 @@
+- insert:
+    - id: my-first-row
+      name: 'my-first-row-not-a-real-module'

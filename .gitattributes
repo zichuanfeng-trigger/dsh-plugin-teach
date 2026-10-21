@@ -1,0 +1,39 @@
+# 默认：自动判定文本，检出时统一用 LF
+# 这台机器的 core.autocrlf=true，若不显式指定，HTML/MD 会在检出时被改成 CRLF，
+# 造成整个仓库的历史里反复出现"整文件改动"。
+* text=auto eol=lf
+
+# ── 明确按文本处理 ───────────────────────────────────────────
+*.md      text eol=lf
+*.html    text eol=lf
+*.css     text eol=lf
+*.js      text eol=lf
+*.mjs     text eol=lf
+*.cjs     text eol=lf
+*.json    text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.txt     text eol=lf
+
+# ── Windows 脚本保持 CRLF（PowerShell 对 LF 容忍但习惯上仍用 CRLF）──
+*.ps1     text eol=crlf
+*.bat     text eol=crlf
+*.cmd     text eol=crlf
+
+# ── 二进制：不参与文本转换与 diff ─────────────────────────────
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.ico     binary
+*.gif     binary
+*.webp    binary
+*.svg     text eol=lf
+*.zip     binary
+*.tgz     binary
+*.gz      binary
+*.exe     binary
+*.dll     binary
+
+# ── 语言统计：让 GitHub 正确识别本仓库主体是 HTML 课件 ────────
+*.html    linguist-documentation
+*.md      linguist-documentation

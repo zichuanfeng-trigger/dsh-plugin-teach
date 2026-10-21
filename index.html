@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DSH 插件开发 · 课程总览</title>
+<link rel="stylesheet" href="assets/course.css">
+<style>
+  .chapter-list { list-style: none; padding: 0; margin: 0 0 1.6rem; }
+  .chapter-list li {
+    display: grid;
+    grid-template-columns: 2.2rem 1fr auto;
+    gap: 0.8rem;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--rule-soft);
+    align-items: baseline;
+  }
+  .chapter-list li:last-child { border-bottom: none; }
+  .ch-num {
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--ink-faint);
+    text-align: right;
+  }
+  .ch-body { font-size: 0.94rem; }
+  .ch-title { font-weight: 600; display: block; margin-bottom: 0.15rem; }
+  .ch-title a { border-bottom: none; }
+  .ch-title a:hover { border-bottom: 1px solid var(--accent); }
+  .ch-answer {
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    display: block;
+    line-height: 1.5;
+  }
+  .ch-status {
+    font-family: var(--sans);
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    padding: 0.1em 0.5em;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .st-done { background: var(--ok-lt); color: var(--ok); }
+  .st-next { background: var(--accent-lt); color: var(--accent); }
+  .st-todo { background: #f2f2f2; color: #999; }
+  .arc {
+    background: var(--paper-warm);
+    border-left: 3px solid var(--rule);
+    padding: 1rem 1.3rem;
+    margin: 0 0 2rem;
+    font-size: 0.92rem;
+  }
+  .arc p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+<div class="course-mark">DSH 插件开发 · 课程总览</div>
+<h1>从一棵树，到一个能装的插件</h1>
+<p class="subtitle">七章。每一章都让你能在命令行或界面上看见一个结果。</p>
+
+<div class="meta-strip">
+  <span>目标已锚定到 dialog-box 项目</span>
+  <span>环境：本机桌面版 0.2.1-rc.2</span>
+</div>
+
+<div class="arc">
+  <p><strong>整条线的形状。</strong>第一章你先看见「树」，知道一棵跑起来的 DSH 是叠出来的。第二、三章钻进去看「一行」背后到底是什么——一个 53 行的模块，和它为什么能在卸载时自动收拾干净。第四章退回来讲清楚「层」的机制，也就是你以后装自己东西的位置。第五章分叉：写进程内的能力，还是写浏览器里的界面。第六章讲拦截，第七章把东西打包装上。</p>
+  <p>七章走完，你手上会有一个能装进这台机器、界面上看得见、并且是你自己写的插件。<code>dialog-box</code> 的 V1 就从这儿起步。</p>
+</div>
+
+<h2><span class="num">一</span>七章一览</h2>
+
+<ul class="chapter-list">
+  <li>
+    <span class="ch-num">01</span>
+    <span class="ch-body">
+      <span class="ch-title"><a href="lessons/0001-a-tree-not-a-program.html">一棵树，不是一份程序</a></span>
+      <span class="ch-answer">树由哪几层按什么顺序叠出来，你写的东西落在第几层</span>
+    </span>
+    <span class="ch-status st-done">已就绪</span>
+  </li>
+  <li>
+    <span class="ch-num">02</span>
+    <span class="ch-body">
+      <span class="ch-title">一个 53 行的插件长什么样</span>
+      <span class="ch-answer">拆官方 dsh-skill-badge：apply / inject / name 各自是谁在读</span>
+    </span>
+    <span class="ch-status st-next">下一课</span>
+  </li>
+  <li>
+    <span class="ch-num">03</span>
+    <span class="ch-body">
+      <span class="ch-title">注册即效果</span>
+      <span class="ch-answer">为什么卸载不用手动清理，ctx.effect 的返回值去了哪里</span>
+    </span>
+    <span class="ch-status st-todo">待写</span>
+  </li>
+  <li>
+    <span class="ch-num">04</span>
+    <span class="ch-body">
+      <span class="ch-title">层、行、以及「后来者赢」</span>
+      <span class="ch-answer">按 id 覆盖为什么是整体替换，patch 的语法边界在哪</span>
+    </span>
+    <span class="ch-status st-todo">待写</span>
+  </li>
+  <li>
+    <span class="ch-num">05</span>
+    <span class="ch-body">
+      <span class="ch-title">两半：Host 与 Client</span>
+      <span class="ch-answer">一个需求该落在进程内还是浏览器里，槽位怎么选</span>
+    </span>
+    <span class="ch-status st-todo">待写</span>
+  </li>
+  <li>
+    <span class="ch-num">06</span>
+    <span class="ch-body">
+      <span class="ch-title">事件与拦截</span>
+      <span class="ch-answer">五种派发模式各管什么，waterfall 为什么等于中间件</span>
+    </span>
+    <span class="ch-status st-todo">待写</span>
+  </li>
+  <li>
+    <span class="ch-num">07</span>
+    <span class="ch-body">
+      <span class="ch-title">打包、安装、看见它</span>
+      <span class="ch-answer">package.json 里哪几个字段让 DSH 认得出这是插件</span>
+    </span>
+    <span class="ch-status st-todo">待写</span>
+  </li>
+</ul>
+
+<h2><span class="num">二</span>参考文档</h2>
+
+<p><a href="reference/glossary.html">术语表</a> —— 这门课里每个词只有一个意思。每课遇到新词先补进这里再在课里用。现在收了 12 组，涵盖树/层/行、三个核心名词、插件与 ctx、五种派发模式、Host/Client 两半、槽位。</p>
+
+<h2><span class="num">三</span>可复用的实验工具</h2>
+
+<p>这台机器没有把 <code>dsh</code> 装进 PATH。桌面版的 CLI 在 <code>app.asar</code> 里面，需要特殊开关才能调用。我写了个垫片：</p>
+
+<pre><code>pwsh -NoProfile -File .\scratch\dsh.ps1 --version
+pwsh -NoProfile -File .\scratch\dsh.ps1 --profile web --dump-config</code></pre>
+
+<p>参数原样透传。<code>--dump-config</code> 不写任何文件，可以放心反复跑。</p>
+
+<div class="note">
+  <span class="label">为什么实验都用 web profile</span>
+  <p><code>desktop</code> 是你每天用的树，15 个 bundle，里面还有插件自动维护的区块，手改容易互相干扰。<code>web</code> 是干净的官方模板，只有 2 个 bundle，坏了删掉重来就行。</p>
+</div>
+
+<div class="lesson-footer">
+  <h3>课程状态文件（给我自己看的）</h3>
+  <p>
+    <code>MISSION.md</code> — 为什么学这个，成功长什么样<br>
+    <code>RESOURCES.md</code> — 一手资料的清单，每课引用前先查这里<br>
+    <code>learning-records/</code> — 你已表现出理解的东西，用来算下一课该讲多深<br>
+    <code>NOTES.md</code> — 你的偏好与本机环境事实
+  </p>
+
+  <div class="ask-teacher">
+    <p><strong>随时可以改章节顺序。</strong>这七章是按「先看见、再拆开、再动手」排的。但如果你现在最急的是别的——比如想直接跳到「怎么让界面上多出一个按钮」——告诉我，我们换顺序。</p>
+  </div>
+</div>
+
+</body>
+</html>

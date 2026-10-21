@@ -1,0 +1,6 @@
+# 实验二：按 id 覆盖一个已存在的行，只给「一部分」config，
+# 观察另一部分是被保留（深合并）还是被抹掉（整体替换）。
+- id: ui-theme
+  name: '@deepseek-ai/dsh-client-ui-theme'
+  config:
+    fontSize: 22

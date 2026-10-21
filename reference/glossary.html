@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DSH 插件开发 · 术语表</title>
+<link rel="stylesheet" href="../assets/course.css">
+<style>
+  .term {
+    border-bottom: 1px solid var(--rule-soft);
+    padding: 0.9rem 0;
+    margin: 0 0 0.4rem;
+  }
+  .term:last-child { border-bottom: none; }
+  .term-name {
+    font-family: var(--mono);
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 0.25rem;
+  }
+  .term-name .zh {
+    font-family: var(--serif);
+    color: var(--ink);
+    font-weight: 600;
+    margin-right: 0.6rem;
+  }
+  .term-body { font-size: 0.92rem; margin: 0; }
+  .term-body p { margin: 0 0 0.4rem; }
+  .term-body p:last-child { margin-bottom: 0; }
+  .term-src {
+    font-family: var(--sans);
+    font-size: 0.74rem;
+    color: var(--ink-faint);
+  }
+  .toc-cols {
+    columns: 2;
+    column-gap: 2.4rem;
+    font-family: var(--sans);
+    font-size: 0.86rem;
+    margin-bottom: 2rem;
+  }
+  .toc-cols a { display: block; margin-bottom: 0.25rem; break-inside: avoid; }
+  @media (max-width: 640px) { .toc-cols { columns: 1; } }
+</style>
+</head>
+<body>
+
+<div class="course-mark">DSH 插件开发 · 参考文档</div>
+<h1>术语表</h1>
+<p class="subtitle">这门课里每个词只有一个意思。后面所有课时都用这套叫法，不换同义词。</p>
+
+<div class="meta-strip">
+  <span>随课程持续增补</span>
+  <span>标注了每个词的出处</span>
+</div>
+
+<div class="toc-cols">
+  <a href="#tree">树 · 层 · 行</a>
+  <a href="#three">profile · bundle · patch</a>
+  <a href="#row">行（entry）与它的一行三件</a>
+  <a href="#plugin">插件（plugin）</a>
+  <a href="#ctx">上下文（ctx）</a>
+  <a href="#service">服务（service）</a>
+  <a href="#inject">依赖声明（inject）</a>
+  <a href="#effect">效果（effect）</a>
+  <a href="#apply">入口（apply）</a>
+  <a href="#dispatch">五种派发模式</a>
+  <a href="#waterfall">瀑布（waterfall）</a>
+  <a href="#host-client">Host 半部 · Client 半部</a>
+  <a href="#slot">槽位（slot）</a>
+  <a href="#profile-dir">家目录与 profile 目录</a>
+</div>
+
+<h2 id="tree"><span class="num">一</span>树 · 层 · 行</h2>
+
+<div class="term">
+  <div class="term-name">tree <span class="zh">插件树</span></div>
+  <div class="term-body">
+    <p>一次启动时，所有插件行按顺序拼出来的那整张表。它是运行期概念，不是某个文件。</p>
+    <p><strong>怎么看见它</strong>：<code>dsh --profile &lt;名&gt; --dump-config</code> 把它完整打印成 YAML。</p>
+    <p class="term-src">出处：<a href="https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md">docs/architecture.md</a> · <span class="tag tag-test">本机实测</span></p>
+  </div>
+</div>
+
+<div class="term">
+  <div class="term-name">layer <span class="zh">层</span></div>
+  <div class="term-body">
+    <p>树的一个来源单位。一个 bundle 贡献一层，一个 patch 文件也是一层。层有严格顺序，后叠的赢。</p>
+    <p><strong>怎么认出来</strong>：dump 输出里的 <code># == &lt;层名&gt;</code> 注释行。被改过的层会写成 <code># == A, patched by B</code>。</p>
+    <p class="term-src">出处：<span class="tag tag-test">本机实测</span>（见第一课第三节）</p>
+  </div>
+</div>
+
+<div class="term">
+  <div class="term-name">entry <span class="zh">行</span></div>
+  <div class="term-body">
+    <p>树里的一条挂载记录，形如 <code>- id: xxx</code> / <code>name: ...</code> / <code>config: ...</code>。一行对应一个被挂载的插件模块，<code>id</code> 在整棵树里唯一。</p>
+    <p>本机 <code>web</code> profile 有 190 行，<code>desktop</code> profile 有 213 行。 <span class="tag tag-test">本机实测</span></p>
+  </div>
+</div>
+
+<h2 id="three"><span class="num">二</span>profile · bundle · patch</h2>
+
+<div class="term">
+  <div class="term-name">profile <span class="zh">配置档</span></div>
+  <div class="term-body">
+    <p>一个命名的组合，存在家目录里。它列出要叠的 bundle 顺序、存自己的补丁层、存装进来的插件依赖。</p>
+    <p>本机有 <code>desktop</code>（日常用，15 个 bundle）和 <code>web</code>（干净模板，2 个 bundle）。</p>
+    <p class="term-src">出处：<a href="https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md">docs/architecture.md</a> · <span class="tag tag-test">本机实测</span></p>
+  </div>
+</div>
+
+<div class="term">
+  <div class="term-name">bundle <span class="zh">组合包</span></div>
+  <div class="term-body">
+    <p>一个 npm 包，<code>package.json</code> 里声明了 <code>dsh.bundle.patch</code>，指向它自己的一份 patch 文件。</p>
+    <p><strong>判定标准只有这一条</strong>：有没有 <code>dsh.bundle.patch</code>。没有的包只是普通依赖，不算插件。</p>
+    <p class="term-src">出处：<code>@deepseek-ai/dsh-web-app/package.json</code> <span class="tag tag-src">源码实读</span></p>
+  </div>
+</div>
+
+<div class="term">
+  <div class="term-name">patch <span class="zh">补丁</span></div>
+  <div class="term-body">
+    <p>一份 YAML 数组，每个元素是一条动作。只有两种动作：<code>- insert:</code>（插入新行）和 <code>- id: xxx</code> + 字段（覆盖已存在的行）。</p>
+    <p><strong>关键行为</strong>：覆盖时 <code>config</code> 是<strong>整体替换</strong>而非逐键合并。</p>
+    <p class="term-src">出处：<span class="tag tag-test">本机实测</span>（第一课第四节）</p>
+  </div>
+</div>
+
+<h2 id="row"><span class="num">三</span>行与它的一行三件</h2>
+
+<table>
+  <thead><tr><th style="width:20%">字段</th><th style="width:26%">是什么</th><th>谁读它</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>全树唯一的标识</td><td>别的 patch 靠它定位要覆盖哪一行；插件管理器靠它开关某一项</td></tr>
+    <tr><td><code>name</code></td><td>要挂载的模块名（或包名+子路径，或绝对路径）</td><td>loader 用它去 <code>import()</code></td></tr>
+    <tr><td><code>config</code></td><td>传给插件的参数对象</td><td>插件自己的 <code>apply(ctx, config)</code> 第二个参数</td></tr>
+    <tr><td><code>disabled</code></td><td>是否挂载。布尔，或 <code>!!js</code> 表达式</td><td>loader 在挂载那一刻判断</td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <span class="label">容易混的一点</span>
+  <p><code>package.json</code> 里的 <code>main</code> 字段<strong>不参与</strong>挂载。挂载走的是 patch 里 <code>name</code> 写的那个路径。<code>main</code> 是给 pnpm 和其它工具看的。</p>
+</div>
+
+<h2 id="plugin"><span class="num">四</span>插件（plugin）</h2>
+
+<div class="term">
+  <div class="term-name">plugin <span class="zh">插件</span></div>
+  <div class="term-body">
+    <p>一个 JS 模块，导出一个 <code>apply</code> 函数（或一个 Service 子类）。框架在挂载时调用 <code>apply</code>，把 <code>ctx</code> 交给它，它在 <code>ctx</code> 上注册能力。</p>
+    <p>最短的官方插件 <code>@deepseek-ai/dsh-skill-badge</code> 只有 53 行，第二课的标本。</p>
+    <p class="term-src">出处：<a href="https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/develop/basic/index.zh.md">第一个插件（中文）</a></p>
+  </div>
+</div>
+
+<div class="term">
+  <div class="term-name">apply <span class="zh">入口函数</span></div>
+  <div class="term-body">
+    <p><code>export function apply(ctx, config) {}</code>。插件被挂载时调用一次；它返回的清理函数（若有）在卸载时调用。</p>
+    <p><strong>C++ 类比</strong>：相当于插件必须实现的 <code>IModuleInterface::StartupModule()</code>。</p>
+  </div>
+</div>
+
+<h2 id="ctx"><span class="num">五</span>上下文（ctx）</h2>
+
+<div class="term">
+  <div class="term-name">ctx <span class="zh">上下文</span></div>
+  <div class="term-body">
+    <p>传给 <code>apply</code> 的那个对象。它是<strong>服务的集合</strong>：你在它上面按名字找别的插件提供的能力，也在它上面注册自己的能力。</p>
+    <p><strong>C++ 类比</strong>：一个服务定位器（service locator），不是一个基类。</p>
+    <p><strong>常见子项</strong>：<code>ctx.tools</code>（工具注册表）、<code>ctx.llm</code>（模型层）、<code>ctx.sessions</code>（会话日志）、<code>ctx.systemPrompt</code>（提示词组装）、<code>ctx.agents</code>（活着的 Agent）。</p>
+    <p class="term-src">出处：<a href="https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/cordis-primer.md">Cordis Primer</a></p>
+  </div>
+</div>
+
+<h2 id="service"><span class="num">六</span>服务（service）</h2>
+
+<div class="term">
+  <div class="term-name">service <span class="zh">服务</span></div>
+  <div class="term-body">
+    <p>挂在 <code>ctx.&lt;key&gt;</code> 上的一个对象，代表一种能力。别的插件通过这个 key 找到它，<strong>而不是 import 具体实现</strong>。这就是「实现可替换」的机制。</p>
+    <p><strong>C++ 类比</strong>：一个按字符串键查找的接口注册表，而不是编译期链接。</p>
+  </div>
+</div>
+
+<h2 id="inject"><span class="num">七</span>依赖声明（inject）</h2>
+
+<div class="term">
+  <div class="term-name">inject <span class="zh">依赖声明</span></div>
+  <div class="term-body">
+    <p><code>export const inject = ['tools']</code>。声明本插件需要哪些服务。框架会<strong>等这些服务就绪</strong>才调用 <code>apply</code>，因此加载顺序不需要手写。</p>
+    <p><strong>C++ 类比</strong>：模块依赖声明（<code>Build.cs</code> 里那个 <code>PublicDependencyModuleNames</code>），但由运行时保证先后，不是链接期。</p>
+    <p class="term-src">出处：<a href="https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/cordis-primer.md">Cordis Primer</a> · <span class="tag tag-src">源码实读</span>（<code>dsh-skill-badge/lib/index.js:47</code>）</p>
+  </div>
+</div>
+
+<h2 id="effect"><span class="num">八</span>效果（effect）</h2>
+
+<div class="term">
+  <div class="term-name">effect <span class="zh">可撤销效果</span></div>
+  <div class="term-body">
+    <p>通过 <code>ctx.effect()</code> 或 <code>ctx.on()</code> 安装的注册。它们在插件卸载时<strong>自动撤销</strong>，不需要手动 removeListener / clearInterval。</p>
+    <p>从 <code>ctx.effect</code> 的回调里<strong>返回一个清理函数</strong>，框架在卸载时调用它。</p>
+    <p class="term-src">出处：<a href="https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/develop/basic/index.zh.md">第一个插件 · 自动清理</a></p>
+  </div>
+</div>
+
+<h2 id="dispatch"><span class="num">九</span>五种派发模式</h2>
+
+<table>
+  <thead><tr><th style="width:16%">模式</th><th style="width:16%">是否等待</th><th style="width:26%">顺序</th><th>有返回值</th></tr></thead>
+  <tbody>
+    <tr><td><code>emit</code></td><td>否</td><td>按注册顺序，只观察</td><td>无</td></tr>
+    <tr><td><code>waterfall</code></td><td>否</td><td>按注册顺序，可包装</td><td>有</td></tr>
+    <tr><td><code>parallel</code></td><td>是</td><td>全部并行</td><td>无</td></tr>
+    <tr><td><code>serial</code></td><td>是</td><td>按注册顺序</td><td>有</td></tr>
+    <tr><td><code>bail</code></td><td>否</td><td>按注册顺序，第一个返回值即停</td><td>有</td></tr>
+  </tbody>
+</table>
+
+<p><span class="tag tag-doc">官方文档</span> 出处：<a href="https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/cordis-primer.md">Cordis Primer · Dispatch Modes</a></p>
+
+<div class="term">
+  <div class="term-name">waterfall <span class="zh">瀑布</span></div>
+  <div class="term-body">
+    <p>「环绕式中间件」。监听器收到 <code>(...args, next)</code>：调 <code>next()</code> 就把（可能被包装过的）结果交给下一个；不调就直接短路，后面的监听器看不到。</p>
+    <p><strong>C++ 类比</strong>：责任链 + 中间件，不是观察者。</p>
+    <p>DSH 里 <code>agent/pre-step</code>、<code>agent/request</code>、<code>llm/stream</code>、三个 <code>tools/*</code> 都是瀑布。</p>
+  </div>
+</div>
+
+<h2 id="host-client"><span class="num">十</span>Host 半部 · Client 半部</h2>
+
+<div class="term">
+  <div class="term-name">Host <span class="zh">宿主侧</span></div>
+  <div class="term-body">
+    <p>跑在 DSH 进程（Node）里的那一半。<code>apply(ctx)</code> 在这里执行。工具、事件、服务都在这一侧。</p>
+    <p><strong>入口</strong>：<code>package.json</code> 的 <code>exports["."]</code>（或 <code>main</code> 之外被 patch 的 <code>name</code> 指到的文件）。</p>
+  </div>
+</div>
+
+<div class="term">
+  <div class="term-name">Client <span class="zh">浏览器侧</span></div>
+  <div class="term-body">
+    <p>跑在 Web 页面（浏览器）里的那一半。界面组件在这里。由 <code>dsh.client</code> 字段声明，入口是 <code>exports["./client"]</code>。</p>
+    <p>文件形态必须是 <code>window.__ModuleLoader__.load({ id: "&lt;包名&gt;", factory(require) { ... } })</code>。</p>
+    <p class="term-src">出处：<code>cordis-plugin-development/references/ui-plugin.md</code> <span class="tag tag-src">本机内置技能</span></p>
+  </div>
+</div>
+
+<h2 id="slot"><span class="num">十一</span>槽位（slot）</h2>
+
+<div class="term">
+  <div class="term-name">slot <span class="zh">槽位</span></div>
+  <div class="term-body">
+    <p>界面上预留的「洞」，有名字。插件往洞里<strong>注册组件</strong>，而不是自己找位置插 DOM。</p>
+    <p>一个槽位有自己的 <strong>kind</strong>：<code>single</code>（只能一个占用者）/ <code>list</code>（可多个，按 <code>order</code> 排）/ <code>keyed</code>（按键分派）/ <code>chain</code>（条目自行提名）。</p>
+    <p>输入框相关的是 <code>conversation.input.*</code> 与 <code>conversation.composer.dock</code>。</p>
+    <p class="term-src">出处：<code>@deepseek-ai/dsh-client-ui-slots</code> README <span class="tag tag-src">源码实读</span> · <code>dialog-box/docs/06</code> <span class="tag tag-dbox">dialog-box 调研</span></p>
+  </div>
+</div>
+
+<h2 id="profile-dir"><span class="num">十二</span>家目录与 profile 目录</h2>
+
+<table>
+  <thead><tr><th style="width:30%">路径</th><th>是什么</th></tr></thead>
+  <tbody>
+    <tr><td><code>~/.dsh/</code>（<code>$DSH_HOME</code>）</td><td>家目录。所有 profile、会话、技能都在下面。</td></tr>
+    <tr><td><code>~/.dsh/profiles/&lt;名&gt;/</code></td><td>一个 profile 的目录。里面有 <code>package.json</code>（bundle 清单）、<code>cordis.patch.yml</code>（用户补丁层）、<code>node_modules/</code>（装进来的插件）。</td></tr>
+    <tr><td><code>~/.dsh/profiles/&lt;名&gt;/cordis.yml</code></td><td><strong>只有注释加一个 <code>[]</code></strong>。别改这个文件，改 <code>cordis.patch.yml</code>。</td></tr>
+  </tbody>
+</table>
+
+<p class="term-src">出处：<span class="tag tag-test">本机实测</span> · <span class="tag tag-dbox">dialog-box/docs/03</span></p>
+
+<div class="lesson-footer">
+  <h3>怎么用这份表</h3>
+  <p>每节课遇到新词，我会先在这里补一条，再在课里用。反过来：如果我在课里用了表里没有的词，或者前后叫法不一致，直接指出——那是我的错，不是你的理解问题。</p>
+
+  <div class="ask-teacher">
+    <p><strong>有词觉得翻译别扭，告诉我。</strong>术语一旦定下就很难改，趁现在还没讲几课，改起来成本最低。</p>
+  </div>
+
+  <div class="lesson-nav">
+    <span><a href="../lessons/0001-a-tree-not-a-program.html">第一课：一棵树，不是一份程序</a></span>
+  </div>
+</div>
+
+</body>
+</html>

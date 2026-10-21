@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第一课 · 一棵树，不是一份程序</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+
+<div class="course-mark">DSH 插件开发 · 第一章</div>
+<h1>一棵树，不是一份程序</h1>
+<p class="subtitle">你启动的不是一个写好的应用，是一棵现场拼出来的插件树。</p>
+
+<div class="meta-strip">
+  <span>预计 25 分钟</span>
+  <span>不需要写 JavaScript</span>
+  <span>结尾有可亲手验证的动作</span>
+</div>
+
+<div class="objectives">
+  <h2>读完能回答</h2>
+  <ol>
+    <li>启动时的插件树是由哪几层、按什么顺序叠出来的？</li>
+    <li>profile、bundle、patch 三个词各指什么，它们分别在哪一层？</li>
+    <li>为什么「后来的一层」能改掉「先前的那一层」，改的粒度是什么？</li>
+    <li>你自己要写的东西，将来落在这一叠里的第几层？</li>
+  </ol>
+</div>
+
+<h2><span class="num">一</span>先看一棵真实的树</h2>
+
+<p>先不谈概念。打开你这台机器上的 <code>web</code> profile，让它把自己启动时的配置完整打印出来：</p>
+
+<pre><code>pwsh -NoProfile -File .\scratch\dsh.ps1 --profile web --dump-config</code></pre>
+
+<p>输出 1229 行 YAML。<span class="tag tag-test">本机实测</span> 里面是 <strong>190 个「行」（entry）</strong>，每行长得像这样：</p>
+
+<pre><code>- id: timer
+  name: '@deepseek-ai/cordis-plugin-timer'</code></pre>
+
+<p>就这么两行，说的是：<strong>「挂载 <code>@deepseek-ai/cordis-plugin-timer</code> 这个东西，给它起名叫 <code>timer</code>」</strong>。</p>
+
+<p>展开一点看，很多行还带第三段：</p>
+
+<pre><code>- id: session-title
+  name: '@deepseek-ai/dsh-session-title'
+  config:
+    fallbackMaxWords: 5
+    fallbackMaxBytes: 40
+    maxTitleBytes: 80</code></pre>
+
+<p>这里 <code>config</code> 是<strong>交给那个插件的参数</strong>——插件被挂载时会收到它，据此决定自己怎么工作。上例说：标题兜底最多 5 个词、40 字节，最终上限 80 字节。</p>
+
+<div class="analogy">
+  <span class="label">用你熟的 C++ 说</span>
+  <p>每一行相当于一条写在配置文件里的「加载指令」：<code>name</code> 是 DLL 路径，<code>config</code> 是这个模块自己的启动参数结构体。整个 <code>dump-config</code> 输出就是启动时要按顺序处理的一整张加载表。</p>
+</div>
+
+<div class="note">
+  <span class="label">关键一点</span>
+  <p>这 190 行<strong>不是</strong>从某个源文件里读出来的常量表。它们是现场算出来的。这就是本课的全部内容。</p>
+</div>
+
+<h2><span class="num">二</span>三个词：profile / bundle / patch</h2>
+
+<p>树的来源只有三个概念，先把它们钉死。</p>
+
+<h3>profile（配置档）</h3>
+
+<p>一个命名的组合，存在你的家目录里。它做三件事：</p>
+<ul>
+  <li>列出一串<strong>要叠上去的 bundle</strong>（有序，顺序有意义）</li>
+  <li>存自己的 <code>cordis.patch.yml</code>（<strong>你的补丁层</strong>）</li>
+  <li>存装进来的第三方插件的依赖声明</li>
+</ul>
+
+<p>你现在用的叫 <code>desktop</code>。它的清单在 <code>~/.dsh/profiles/desktop/package.json</code>，<span class="tag tag-test">本机实测</span> 列了 <strong>15 个 bundle</strong>，其中 6 个是 <code>@deepseek-ai</code> 官方包，剩下 9 个来自别处（<code>dsh-whale-widget</code>、<code>dshmarket</code> 这些）。</p>
+
+<pre><code>{
+  "name": "dsh-profile-desktop",
+  "dependencies": { "dsh-whale-widget": "^0.4.2", ... },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "dshmarket",
+        ...
+      ]
+    }
+  }
+}</code></pre>
+
+<p class="code-label">出处：<code>~/.dsh/profiles/desktop/package.json</code>（节选）</p>
+
+<h3>bundle（组合包）</h3>
+
+<p>一个 bundle 就是一个 <strong>npm 包</strong>，它的 <code>package.json</code> 里多了一个 <code>dsh</code> 字段，指向一份 patch 文件：</p>
+
+<pre><code>{
+  "name": "dsh-whale-widget",
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }
+}</code></pre>
+
+<p class="code-label">出处：<code>~/.dsh/profiles/desktop/node_modules/dsh-whale-widget/package.json</code>（节选）</p>
+
+<p>就这一行声明，让它成为 bundle。没有 <code>dsh.bundle.patch</code> 的包只是普通依赖，不是插件。</p>
+
+<h3>patch（补丁层）</h3>
+
+<p>patch 是<strong>一棵 YAML 数组</strong>，每个元素是一条「动作」。只有两种动作：</p>
+
+<table>
+  <thead>
+    <tr><th style="width:32%">形态</th><th>含义</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>- insert:</code> + 行数组</td><td>往树里<strong>插入</strong>若干新行</td></tr>
+    <tr><td><code>- id: xxx</code> + 字段</td><td><strong>覆盖</strong>一个已存在的行（按 id 找）</td></tr>
+  </tbody>
+</table>
+
+<div class="win">
+  <span class="label">已经能看出来了</span>
+  <p>这三件事环环相扣：<strong>profile 按顺序列出 bundle，每个 bundle 贡献一份 patch，patch 往同一棵树里插行或改行。</strong>没有哪一份文件单独描述整棵树；树是它们叠起来的结果。</p>
+</div>
+
+<h2><span class="num">三</span>叠的顺序：后来者赢</h2>
+
+<p>官方文档写得很直白 <span class="tag tag-doc">官方文档</span>：</p>
+
+<blockquote style="margin:0 0 1.2rem;padding-left:1rem;border-left:2px solid var(--rule);color:var(--ink-soft);font-size:0.94rem;">
+  Layers apply to an empty entry list: the profile's ordered bundles, its <code>cordis.patch.yml</code>, the home patch, then <code>--patch</code> overlays.<br>
+  <span style="font-size:0.82rem;color:var(--ink-faint)">—— <a href="https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md">docs/architecture.md</a></span>
+</blockquote>
+
+<p>翻成人话，从底到顶是这样五步：</p>
+
+<ol class="action-steps">
+  <li><strong>从一张空表开始</strong>——不是从某个默认配置开始，是空。</li>
+  <li>按 <code>bundles</code> 数组的顺序，把每个 bundle 的 patch 依次叠上去。</li>
+  <li>叠该 profile 自己的 <code>cordis.patch.yml</code>。</li>
+  <li>叠家目录级的 <code>~/.dsh/cordis.patch.yml</code>（你这台机器上<strong>不存在</strong>这个文件，所以这层是空的 <span class="tag tag-test">本机实测</span>）。</li>
+  <li>叠命令行上每个 <code>--patch</code> 指定的文件，从左到右。</li>
+</ol>
+
+<p>我用两次 <code>--patch</code> 实测了这个顺序 <span class="tag tag-test">本机实测</span>。第一层插一行，第二层用同一个 id 去改它：</p>
+
+<pre><code># layer-1.patch.yml
+- insert:
+    - id: layer-experiment
+      name: 'layer-experiment-not-a-real-module'
+      config:
+        who: first-layer
+        color: blue
+
+# layer-2.patch.yml
+- id: layer-experiment
+  name: 'layer-experiment-not-a-real-module'
+  config:
+    who: second-layer</code></pre>
+
+<p>跑 <code>--patch layer-1 --patch layer-2 --dump-config</code>，树里那一行变成：</p>
+
+<pre><code># == N:\...\layer-1.patch.yml, patched by N:\...\layer-2.patch.yml
+- id: layer-experiment
+  name: layer-experiment-not-a-real-module
+  config:
+    who: second-layer</code></pre>
+
+<p class="code-label">出处：本机 <code>--dump-config</code> 实际输出（第 1230 行起）</p>
+
+<p>三个信息同时成立：</p>
+
+<ul>
+  <li>后叠的层赢了：<code>who</code> 是 <code>second-layer</code>。</li>
+  <li>但那一行<strong>没有变成两行</strong>——它还是同一行，被就地改写了。</li>
+  <li>层注释直接写着 <code>layer-1.patch.yml, patched by layer-2.patch.yml</code>，谁改了谁一目了然。</li>
+</ul>
+
+<h2><span class="num">四</span>最容易踩的坑：覆盖是整体替换</h2>
+
+<p>上一步有个细节我故意没讲：<code>color: blue</code> 去哪了？</p>
+
+<p>它<strong>没了</strong>。这就是这条路上第一个、也是最贵的坑。</p>
+
+<div class="warn">
+  <span class="label">坑</span>
+  <p>按 id 覆盖一个行的时候，<code>config</code> 是<strong>整体替换</strong>，不是逐键合并。你只给一个键，其余键全部消失。</p>
+</div>
+
+<p>我又单独验了一遍 <span class="tag tag-test">本机实测</span>，因为这条太反直觉。拿官方自带的一行开刀——它本来有三个键：</p>
+
+<div class="before-after">
+  <div class="head left">原来（base 层）</div>
+  <div class="head">我覆盖时只给了 maxTitleBytes</div>
+  <div class="left">
+<pre style="margin:0;border:none;background:none;padding:0"><code>config:
+  fallbackMaxWords: 5
+  fallbackMaxBytes: 40
+  maxTitleBytes: 80</code></pre>
+  </div>
+  <div>
+<pre style="margin:0;border:none;background:none;padding:0"><code>config:
+  maxTitleBytes: 999</code></pre>
+  </div>
+</div>
+
+<p>结果：前两个键<strong>整个消失</strong>，只剩我写的那个。</p>
+
+<pre><code># == @deepseek-ai/dsh-base, patched by probe3.patch.yml
+- id: session-title
+  name: '@deepseek-ai/dsh-session-title'
+  config:
+    maxTitleBytes: 999</code></pre>
+
+<p class="code-label">出处：本机 <code>--dump-config</code> 实际输出（第 32 行起）</p>
+
+<p>所以规矩是：<strong>想改一个键，就把这一行的完整 config 抄一遍再改</strong>。这也是为什么官方 web-app 的 patch 开头要写那句话 <span class="tag tag-src">源码实读</span>：</p>
+
+<blockquote style="margin:0 0 1.2rem;padding-left:1rem;border-left:2px solid var(--rule);color:var(--ink-soft);font-size:0.94rem;">
+  A patch replaces the targeted row's whole <code>config</code>, so each row below restates every key it owns.<br>
+  <span style="font-size:0.82rem;color:var(--ink-faint)">—— <code>@deepseek-ai/dsh-web-app/cordis.patch.yml</code> 第 5 行</span>
+</blockquote>
+
+<details>
+  <summary>顺带一个好消息：覆盖时可以不写 name</summary>
+  <p>上面那次覆盖，我故意只写了 <code>id</code> 和 <code>config</code>，没写 <code>name</code>。dump 出来那一行仍然带着原来的 <code>name</code>。<span class="tag tag-test">本机实测</span></p>
+  <p>所以覆盖时你只需要交代「改哪个键」，不用重复它是什么模块。但 <code>config</code> 还是要抄全——这两件事不一样。</p>
+</details>
+
+<h2><span class="num">五</span>动手：往树里插一行</h2>
+
+<p>到这儿概念够了，轮到你亲手验一次。目标：<strong>让自己写的一层出现在 dump 里</strong>。整个过程不写一行 JavaScript，也不碰任何该保留的文件。</p>
+
+<ol class="action-steps">
+  <li>
+    <p>先看 baseline。在 <code>teach</code> 目录下跑：</p>
+    <pre><code>pwsh -NoProfile -File .\scratch\dsh.ps1 --profile web --dump-config</code></pre>
+    <p>记住结尾长什么样。最后一行大概是 <code>tool-plugin-market</code> 那个块。</p>
+  </li>
+  <li>
+    <p>新建一个文件 <code>scratch\my-first-layer.patch.yml</code>，内容三行：</p>
+    <pre><code>- insert:
+    - id: my-first-row
+      name: 'my-first-row-not-a-real-module'</code></pre>
+    <p>注意缩进：<code>insert:</code> 后面是一个列表，列表项比它多缩进两格。<code>-</code> 后面要有空格。</p>
+  </li>
+  <li>
+    <p>带上它再 dump 一次：</p>
+    <pre><code>pwsh -NoProfile -File .\scratch\dsh.ps1 --profile web `
+  --patch .\scratch\my-first-layer.patch.yml --dump-config</code></pre>
+  </li>
+  <li>
+    <p>在输出末尾找这一块：</p>
+    <pre><code># == N:\DSH-Plugin-dev\teach\scratch\my-first-layer.patch.yml
+- id: my-first-row
+  name: my-first-row-not-a-real-module</code></pre>
+    <p>找到就是成功。那行 <code># ==</code> 是这一层的名字，它是你的。</p>
+  </li>
+</ol>
+
+<div class="note">
+  <span class="label">为什么 name 指向一个不存在的模块也没事</span>
+  <p>因为 <code>--dump-config</code> 只做配置计算，<strong>不加载任何代码</strong> <span class="tag tag-test">本机实测</span>。这让它成为一个完美的纯配置实验台：随便插假行，不影响任何东西，也不需要模块真的存在。</p>
+  <p>反过来说：真正启动时会失败。所以这条实验只在 dump 里做，别拿去启动。</p>
+</div>
+
+<div class="win">
+  <span class="label">这一步你得到了什么</span>
+  <p>你亲手证明了「层」是真实存在的、可插的、有名字的。你写的一个文件，和官方 <code>dsh-base</code> 的 patch，在树里是同一种东西——<strong>没有特权核心</strong>，只有先后顺序不同的层。</p>
+</div>
+
+<h2><span class="num">六</span>那我要写的东西落在第几层</h2>
+
+<p>回到你的实际问题。你现在有三种可选做法，落在不同的位置：</p>
+
+<table>
+  <thead>
+    <tr><th style="width:26%">做法</th><th style="width:22%">落在哪</th><th>适合什么阶段</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>--patch</code> 临时一层</td>
+      <td>最顶层，只在本次启动有效</td>
+      <td>实验。改了重跑命令就行，不留痕。就是刚才你做的事。</td>
+    </tr>
+    <tr>
+      <td>改 profile 的 <code>cordis.patch.yml</code></td>
+      <td>倒数第二层，长期有效</td>
+      <td>日常配置调整。但会被家目录层和 <code>--patch</code> 盖过。</td>
+    </tr>
+    <tr>
+      <td><strong>做成 bundle 装上</strong></td>
+      <td>由 <code>bundles</code> 数组的位置决定</td>
+      <td>真正交付。这是 <code>dialog-box</code> 要走的路，第七课讲。</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="warn">
+  <span class="label">为什么实验不要改 desktop profile 的 patch</span>
+  <p>那是你每天用的树，里面还有 <code>dsh-skill-mcp-panel</code> 自动维护的 MCP 区块。手改容易打架。用 <code>web</code> profile 做实验，它只有两个 bundle、干净、坏了也好恢复；而且 <code>--dump-config</code> 不写文件，连改都算不上。</p>
+</div>
+
+<h2><span class="num">七</span>回到你的项目</h2>
+
+<p>你的输入框插件最终会是什么形态？现在可以给一个准确的答案了：</p>
+
+<p><strong>一个 bundle</strong>。它会往树里插自己的行，那些行指向你自己的模块。模块会在宿主进程里跑起来，向 <code>ctx</code> 注册能力；如果要做界面，还会有浏览器侧的一半，往界面预留的槽位里注册组件。</p>
+
+<p>而这一切的前提，是你先知道<strong>自己插进去的行排在哪、被谁改过</strong>。否则出问题时你连查哪儿都不知道。</p>
+
+<div class="win">
+  <span class="label">下一课</span>
+  <p>这棵树里的每一行，都对应一个「插件」——一个导出 <code>apply</code> 函数的 JS 模块。下一课我们把其中最短的一个拆开看：官方自带的 <code>dsh-skill-badge</code>，<strong>53 行</strong>，完整、能跑、结构清晰。看完你就知道 <code>ctx</code> 是什么、<code>inject</code> 是干什么的。</p>
+</div>
+
+<div class="quiz">
+  <h2><span class="num">八</span>自测</h2>
+
+  <div class="quiz-item" data-correct="2" data-why="树从一张空表开始，由 bundles 依次叠加、再叠 profile 的 patch、再叠 --patch 得到。没有任何一份文件单独描述整棵树——这正是「一切皆插件」的实现方式。">
+    <div class="quiz-q">启动时的插件树，最初的样子是什么？</div>
+    <ul class="quiz-options">
+      <li>一张预先写好的配置表，照着加载</li>
+      <li>运行时扫描模块，动态推导出清单</li>
+      <li>一张空表，按层顺序逐条叠加出来</li>
+      <li>安装程序生成的快照，升级才刷新</li>
+    </ul>
+    <div class="quiz-feedback"></div>
+  </div>
+
+  <div class="quiz-item" data-correct="0" data-why="按 id 覆盖时 config 是整体替换。只写一个键，其余键会被抹掉。所以改一个键也要把这一行的 config 抄全。">
+    <div class="quiz-q">按 id 覆盖一个已有行，只写其中一个 config 键会怎样？</div>
+    <ul class="quiz-options">
+      <li>其余键被抹掉，只剩写出的那个</li>
+      <li>其余键都保留，写出的键被替换</li>
+      <li>整行被忽略掉，沿用原来的配置</li>
+      <li>启动时报错，直接拒绝这次覆盖</li>
+    </ul>
+    <div class="quiz-feedback"></div>
+  </div>
+
+  <div class="quiz-item" data-correct="1" data-why="五层从底到顶是：空表 → 每个 bundle 的 patch（按 bundles 数组顺序）→ profile 自己的 cordis.patch.yml → 家目录级 patch → 每个 --patch。后来者赢。">
+    <div class="quiz-q">下面哪一种顺序，跟实际的叠加顺序一致？</div>
+    <ul class="quiz-options">
+      <li>profile 补丁、bundle、--patch 层</li>
+      <li>bundle、profile 补丁、--patch 层</li>
+      <li>--patch 层、bundle、profile 补丁</li>
+      <li>bundle、--patch 层、profile 补丁</li>
+    </ul>
+    <div class="quiz-feedback"></div>
+  </div>
+
+  <div class="quiz-item" data-correct="3" data-why="dump-config 只做配置计算，不加载代码，所以 name 指向不存在的模块也能打印出树。这让它成为纯配置实验台，但也意味着 dump 成功不等于能启动。">
+    <div class="quiz-q">--dump-config 里写一个不存在的模块名，为什么能成功？</div>
+    <ul class="quiz-options">
+      <li>因为模块名会被自动替换成默认值</li>
+      <li>因为加载器会跳过所有未知的条目</li>
+      <li>因为那条配置只在真正启动时校验</li>
+      <li>因为它只计算配置，并不加载代码</li>
+    </ul>
+    <div class="quiz-feedback"></div>
+  </div>
+
+  <div class="quiz-item" data-correct="1" data-why="一个包要成为 bundle，得在 package.json 里用 dsh.bundle.patch 指向自己的补丁文件。只有这一条声明让它进入组合包体系；没有这个字段就只是普通依赖。">
+    <div class="quiz-q">一个 npm 包要成为 bundle，必须声明什么？</div>
+    <ul class="quiz-options">
+      <li>在清单里声明一个字段指向补丁</li>
+      <li>在导出里加一个浏览器侧的入口</li>
+      <li>在依赖里列出宿主提供的能力包</li>
+      <li>在打包清单里包含那个配置目录</li>
+    </ul>
+    <div class="quiz-feedback"></div>
+  </div>
+
+  <div class="quiz-score"></div>
+</div>
+
+<div class="lesson-footer">
+  <h3>这一课的一手来源</h3>
+  <p>
+    最该读的是官方的架构总览，本课第二节到第三节那五层顺序，原文就在开头三段：<br>
+    <a href="https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md">DeepSeek Harness Architecture — profiles and bundles</a>
+  </p>
+  <p>
+    想直接看官方怎么定义每个字段，读中文版更容易进入：<br>
+    <a href="https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.zh.md">架构总览（中文）</a>
+  </p>
+
+  <h3>本课用到的实验文件</h3>
+  <p>
+    <code>scratch\dsh.ps1</code> — CLI 垫片（这台机器没有 <code>dsh</code> 命令，用它代替）<br>
+    <code>scratch\probe.patch.yml</code> · <code>probe2</code> · <code>probe3</code> — 本课引用的三个实测<br>
+    <code>scratch\layer-1.patch.yml</code> · <code>layer-2.patch.yml</code> — 层顺序实验
+  </p>
+
+  <h3>相关参考文档</h3>
+  <p><a href="../reference/glossary.html">术语表</a> — 本课出现的 profile / bundle / patch / entry / layer，后面每课都会沿用这套叫法。</p>
+
+  <div class="ask-teacher">
+    <p><strong>卡住就直接问。</strong>我是你的老师，不是文档搬运工。特别是：缩进为什么是这个规矩、为什么空表而不是默认值、你自己项目的某一行该放哪——这些都能问。你问得越具体，下一课我就调得越准。</p>
+  </div>
+
+  <div class="lesson-nav">
+    <span>← 这是第一课</span>
+    <span>第二课：一个 53 行的插件长什么样 →</span>
+  </div>
+</div>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>
