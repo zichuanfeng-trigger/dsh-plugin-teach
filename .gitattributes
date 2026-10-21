@@ -34,6 +34,8 @@
 *.exe     binary
 *.dll     binary
 
-# ── 语言统计：让 GitHub 正确识别本仓库主体是 HTML 课件 ────────
-*.html    linguist-documentation
+# ── 语言统计 ─────────────────────────────────────────────────
+# 本仓库主体是 HTML 课件，所以要让它参与统计（不标 documentation）。
+# Markdown 是说明文档，标成 documentation 以免抢走统计权重。
 *.md      linguist-documentation
+*.ps1     linguist-language=PowerShell
