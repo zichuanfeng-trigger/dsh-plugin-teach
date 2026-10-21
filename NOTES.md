@@ -38,3 +38,12 @@
 
 - 用户机器有 9 个第三方插件，其中一个（`dsh-skill-mcp-panel`）会往 `cordis.patch.yml` 里写 MCP 区块，改 profile patch 时要避开该区块
 - 桌面版重启会重载 profile，教学时应优先用 `web` profile 做实验，避免污染日常工作树
+
+## 仓库工作流（2026-10-21 建立）
+
+- 远程：`https://github.com/zichuanfeng-trigger/teach.git`，私有，默认分支 `main`
+- 本仓库独立身份：`huafeng <zichuanfeng-trigger@users.noreply.github.com>`（全局 email 是 `Administrator@HYZ`，关联不上 GitHub，所以只在本地覆盖）
+- 没有 `gh` CLI；建仓库用 GitHub REST API，token 从凭据管理器取
+- 提交信息按 UGit 模板（`[类型]: 简要` + 具体改动 + 测试验证）
+- 每次提交前跑两项检查：本机绝对路径（`.md`/`.html` 里不该有）、HTML 标签平衡
+- 不加课就不要提交；`scratch/dump-*.txt` 与 `scratch/asar/` 永远不入库
