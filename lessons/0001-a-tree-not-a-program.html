@@ -163,13 +163,13 @@
 
 <p>跑 <code>--patch layer-1 --patch layer-2 --dump-config</code>，树里那一行变成：</p>
 
-<pre><code># == N:\...\layer-1.patch.yml, patched by N:\...\layer-2.patch.yml
+<pre><code># == &lt;你的 teach 目录&gt;\scratch\layer-1.patch.yml, patched by &lt;你的 teach 目录&gt;\scratch\layer-2.patch.yml
 - id: layer-experiment
   name: layer-experiment-not-a-real-module
   config:
     who: second-layer</code></pre>
 
-<p class="code-label">出处：本机 <code>--dump-config</code> 实际输出（第 1230 行起）</p>
+<p class="code-label">出处：本机 <code>--dump-config</code> 实际输出（第 1230 行起）。层名就是那一层所属文件的绝对路径，所以这里用占位符代替我这台机器的路径。</p>
 
 <p>三个信息同时成立：</p>
 
@@ -254,10 +254,10 @@
   </li>
   <li>
     <p>在输出末尾找这一块：</p>
-    <pre><code># == N:\DSH-Plugin-dev\teach\scratch\my-first-layer.patch.yml
+    <pre><code># == &lt;你的 teach 目录&gt;\scratch\my-first-layer.patch.yml
 - id: my-first-row
   name: my-first-row-not-a-real-module</code></pre>
-    <p>找到就是成功。那行 <code># ==</code> 是这一层的名字，它是你的。</p>
+    <p>找到就是成功。那行 <code># ==</code> 是这一层的名字（就是你那个文件的绝对路径），它是你的。路径会和你机器上的实际位置一致，不是下面这串占位符。</p>
   </li>
 </ol>
 
