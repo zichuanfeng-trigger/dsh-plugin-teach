@@ -41,7 +41,7 @@
 
 ## 仓库工作流（2026-10-21 建立）
 
-- 远程：`https://github.com/zichuanfeng-trigger/teach.git`，私有，默认分支 `main`
+- 远程：`https://github.com/zichuanfeng-trigger/dsh-plugin-teach.git`，私有，默认分支 `main`（原名 `teach`，2026-10-27 改名）
 - 本仓库独立身份：`huafeng <zichuanfeng-trigger@users.noreply.github.com>`（全局 email 是 `Administrator@HYZ`，关联不上 GitHub，所以只在本地覆盖）
 - 没有 `gh` CLI；建仓库用 GitHub REST API，token 从凭据管理器取
 - 提交信息按 UGit 模板（`[类型]: 简要` + 具体改动 + 测试验证）

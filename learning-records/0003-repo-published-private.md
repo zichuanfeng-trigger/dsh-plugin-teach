@@ -1,6 +1,8 @@
 # 仓库已建立并发布为私有仓库
 
-`teach` 现在是独立的 git 仓库，默认分支 `main`，远程指向 `https://github.com/zichuanfeng-trigger/teach.git`，**已验证为私有**（匿名访问 API 返回 403，匿名读 raw 返回 404）。
+`dsh-plugin-teach` 是独立的 git 仓库，默认分支 `main`，远程指向 `https://github.com/zichuanfeng-trigger/dsh-plugin-teach.git`，**已验证为私有**（匿名访问 API 返回 403，匿名读 raw 返回 404）。
+
+> 2026-10-27 更新：仓库原名 `teach`，已通过 GitHub API 改名为 `dsh-plugin-teach`，本地远程地址同步更新。
 
 ## 环境事实（2026-10-21 实测）
 
