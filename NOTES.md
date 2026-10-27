@@ -45,5 +45,8 @@
 - 本仓库独立身份：`huafeng <zichuanfeng-trigger@users.noreply.github.com>`（全局 email 是 `Administrator@HYZ`，关联不上 GitHub，所以只在本地覆盖）
 - 没有 `gh` CLI；建仓库用 GitHub REST API，token 从凭据管理器取
 - 提交信息按 UGit 模板（`[类型]: 简要` + 具体改动 + 测试验证）
+- **提交信息必须无 BOM**：用 PowerShell 写临时消息文件时，`Out-File -Encoding utf8` 在 PowerShell 5 会带 BOM，`git commit -F` 会把它吃进 subject。
+  正确写法：`[System.IO.File]::WriteAllText($path, $msg, (New-Object System.Text.UTF8Encoding($false)))`
+  验证写法：`git cat-file -p <sha>` 看空行后首字符是否 U+FEFF
 - 每次提交前跑两项检查：本机绝对路径（`.md`/`.html` 里不该有）、HTML 标签平衡
 - 不加课就不要提交；`scratch/dump-*.txt` 与 `scratch/asar/` 永远不入库
